@@ -5,8 +5,10 @@
 
 #define HELLO_EXT_TYPE DESSERT_EXT_USER + 4
 
+mac_addr hwaddr_follow;
+
 int periodic_send_hello(void *data, struct timeval *scheduled, struct timeval *interval) {
-	dessert_info("sending hello");
+//	dessert_info("sending hello");
 	dessert_msg_t* hello_msg;
 	dessert_ext_t* ext;
 
@@ -23,6 +25,11 @@ int periodic_send_hello(void *data, struct timeval *scheduled, struct timeval *i
 	return 0;
 }
 
+int periodic_report_follow(void *data, struct timeval *scheduled, struct timeval *interval) {
+
+	return dessert_log_monitored_neighbour(hwaddr_follow);
+}
+
 int handle_hello(dessert_msg_t* msg, size_t len, dessert_msg_proc_t *proc, const dessert_meshif_t *iface, dessert_frameid_t id){
 	dessert_ext_t* hallo_ext;
 
@@ -33,10 +40,7 @@ int handle_hello(dessert_msg_t* msg, size_t len, dessert_msg_proc_t *proc, const
 			dessert_meshsend(msg, iface);
 		} else {
 			if (memcmp(iface->hwaddr, msg->l2h.ether_dhost, ETH_ALEN) == 0) {
-				struct timeval ts;
-				gettimeofday(&ts, NULL);
-				//aodv_db_cap2Dneigh(msg->l2h.ether_shost, iface, &ts);
-				dessert_info("received hello resp from %x:%x:%x:%x:%x:%x", EXPLODE_ARRAY6(msg->l2h.ether_shost));
+//				dessert_info("received hello resp from %x:%x:%x:%x:%x:%x", EXPLODE_ARRAY6(msg->l2h.ether_shost));
 			}
 		}
 		return DESSERT_MSG_DROP;
@@ -50,6 +54,42 @@ int handle_hello(dessert_msg_t* msg, size_t len, dessert_msg_proc_t *proc, const
 int toMesh(dessert_msg_t* msg, size_t len, dessert_msg_proc_t *proc, dessert_sysif_t *tunif, dessert_frameid_t id) {
 	dessert_meshsend(msg, NULL);
 	return DESSERT_MSG_DROP;
+}
+
+static int cli_cmd_follow(struct cli_def *cli, char *command, char *argv[], int argc) {
+
+	struct timeval follow_interval_t;
+	follow_interval_t.tv_sec = 1;
+	follow_interval_t.tv_usec = 0;
+	
+	int valid = -1;
+	if(argc >= 1) {
+		valid = parse_mac(argv[0], &hwaddr_follow);
+	} else {
+		cli_print(cli, "FOLLOW - no MAC Address given...");
+		return CLI_ERROR;
+	}
+
+	if(valid >= 0) {
+		cli_print(cli, "FOLLOW - MAC Address: [%s]", argv[0]);
+	} else {
+		cli_print(cli, "FOLLOW - MAC Address not valid: [%s]", argv[0]);
+		return CLI_ERROR;
+	}
+	
+	if(argc >= 3) {
+		follow_interval_t.tv_sec = atoi(argv[1]);
+		follow_interval_t.tv_usec = atoi(argv[2]);
+		cli_print(cli, "FOLLOW - set interval: %lldsec + %lldusec", follow_interval_t.tv_sec, follow_interval_t.tv_usec);
+	} else {
+		cli_print(cli, "FOLLOW - no interval...taking default: %lldsec + %lldusec", follow_interval_t.tv_sec, follow_interval_t.tv_usec);
+	}
+
+	cli_print(cli, "FOLLOW - writing RSSI-info for neighbour [%s] in log file", argv[0]);
+
+	dessert_periodic_add(periodic_report_follow, NULL, NULL, &follow_interval_t);
+
+	return CLI_OK;
 }
 
 int main(int argc, char *argv[]) {
@@ -70,13 +110,15 @@ int main(int argc, char *argv[]) {
 		cfg = dessert_cli_get_cfg(argc, argv);
 		dessert_init("DESX", 0xEE, DESSERT_OPT_DAEMONIZE);
 	}
-	
+
 	/* initalize logging */
 	dessert_logcfg(DESSERT_LOG_STDERR);
 	
 	/* cli initialization */
 	cli_register_command(dessert_cli, dessert_cli_cfg_iface, "sys", dessert_cli_cmd_addsysif, PRIVILEGE_PRIVILEGED, MODE_CONFIG, "initialize sys interface");
 	cli_register_command(dessert_cli, dessert_cli_cfg_iface, "mesh", dessert_cli_cmd_addmeshif, PRIVILEGE_PRIVILEGED, MODE_CONFIG, "initialize mesh interface");
+	
+	cli_register_command(dessert_cli, NULL, "follow", cli_cmd_follow, PRIVILEGE_PRIVILEGED, MODE_CONFIG, "configure a neighbour to follow -> output to logfile");
 
 	/* registering callbacks */
 	dessert_meshrxcb_add(dessert_msg_ifaceflags_cb, 20);

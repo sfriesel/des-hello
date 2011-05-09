@@ -3,7 +3,6 @@
 #include <string.h>
 #include <time.h>
 
-#define EXPLODE_ARRAY6( ARRAY ) ARRAY[0], ARRAY[1], ARRAY[2], ARRAY[3], ARRAY[4], ARRAY[5]
 #define HELLO_EXT_TYPE DESSERT_EXT_USER + 4
 
 int periodic_send_hello(void *data, struct timeval *scheduled, struct timeval *interval) {
@@ -54,10 +53,23 @@ int toMesh(dessert_msg_t* msg, size_t len, dessert_msg_proc_t *proc, dessert_sys
 }
 
 int main(int argc, char *argv[]) {
-	FILE *cfg = dessert_cli_get_cfg(argc, argv);
-	//FILE *cfg = fopen("/etc/default/des-aodv", "r");
-	dessert_init("DESX", 0xEE, DESSERT_OPT_NODAEMONIZE);
-	
+
+	/* initialize daemon with correct parameters */
+	FILE *cfg = NULL;
+	if ((argc == 2) && (strcmp(argv[1], "-nondaemonize") == 0)) {
+		dessert_info("starting HELLO in non daemonize mode");
+		dessert_init("DESX", 0xEE, DESSERT_OPT_NODAEMONIZE);
+		char cfg_file_name[] = "./des-hello.conf";
+		cfg = fopen(cfg_file_name, "r");
+		if (cfg == NULL) {
+			printf("Config file '%s' not found. Exit ...\n", cfg_file_name);
+			return EXIT_FAILURE;
+		}
+	} else {
+		dessert_info("starting HELLO in daemonize mode");
+		cfg = dessert_cli_get_cfg(argc, argv);
+		dessert_init("DESX", 0xEE, DESSERT_OPT_DAEMONIZE);
+	}
 	
 	/* initalize logging */
 	dessert_logcfg(DESSERT_LOG_STDERR);

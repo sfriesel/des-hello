@@ -6,7 +6,7 @@
 #define HELLO_EXT_TYPE DESSERT_EXT_USER + 4
 
 int periodic_send_hello(void *data, struct timeval *scheduled, struct timeval *interval) {
-	dessert_info("sending hello\n");
+	dessert_info("sending hello");
 	dessert_msg_t* hello_msg;
 	dessert_ext_t* ext;
 
@@ -17,7 +17,7 @@ int periodic_send_hello(void *data, struct timeval *scheduled, struct timeval *i
 	dessert_msg_addext(hello_msg, &ext, HELLO_EXT_TYPE, 0);
 
 	if(dessert_meshsend(hello_msg, NULL) != DESSERT_OK) {
-		printf("FAIL\n");
+		printf("FAIL");
 	}
 	dessert_msg_destroy(hello_msg);
 	return 0;
@@ -36,7 +36,7 @@ int handle_hello(dessert_msg_t* msg, size_t len, dessert_msg_proc_t *proc, const
 				struct timeval ts;
 				gettimeofday(&ts, NULL);
 				//aodv_db_cap2Dneigh(msg->l2h.ether_shost, iface, &ts);
-				dessert_info("received hello resp from %x:%x:%x:%x:%x:%x\n", EXPLODE_ARRAY6(msg->l2h.ether_shost));
+				dessert_info("received hello resp from %x:%x:%x:%x:%x:%x", EXPLODE_ARRAY6(msg->l2h.ether_shost));
 			}
 		}
 		return DESSERT_MSG_DROP;

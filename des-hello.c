@@ -3,7 +3,7 @@
 #include <string.h>
 #include <time.h>
 
-#define HELLO_EXT_TYPE DESSERT_EXT_USER + 4
+#define HELLO_EXT_TYPE (DESSERT_EXT_USER + 4)
 
 mac_addr hwaddr_follow;
 
@@ -19,15 +19,10 @@ int periodic_send_hello(void *data, struct timeval *scheduled, struct timeval *i
 	dessert_msg_addext(hello_msg, &ext, HELLO_EXT_TYPE, 0);
 
 	if(dessert_meshsend(hello_msg, NULL) != DESSERT_OK) {
-		printf("FAIL");
+		fputs("FAIL\n", stderr);
 	}
 	dessert_msg_destroy(hello_msg);
 	return 0;
-}
-
-int periodic_report_follow(void *data, struct timeval *scheduled, struct timeval *interval) {
-
-	return dessert_log_monitored_neighbour(hwaddr_follow);
 }
 
 int handle_hello(dessert_msg_t* msg, size_t len, dessert_msg_proc_t *proc, const dessert_meshif_t *iface, dessert_frameid_t id){
@@ -54,6 +49,11 @@ int handle_hello(dessert_msg_t* msg, size_t len, dessert_msg_proc_t *proc, const
 int toMesh(dessert_msg_t* msg, size_t len, dessert_msg_proc_t *proc, dessert_sysif_t *tunif, dessert_frameid_t id) {
 	dessert_meshsend(msg, NULL);
 	return DESSERT_MSG_DROP;
+}
+
+int periodic_report_follow(void *data, struct timeval *scheduled, struct timeval *interval) {
+
+	return dessert_log_monitored_neighbour(hwaddr_follow);
 }
 
 static int cli_cmd_follow(struct cli_def *cli, char *command, char *argv[], int argc) {

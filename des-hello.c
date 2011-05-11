@@ -64,7 +64,7 @@ static int cli_cmd_follow(struct cli_def *cli, char *command, char *argv[], int 
 	
 	int valid = -1;
 	if(argc >= 1) {
-		valid = parse_mac(argv[0], &hwaddr_follow);
+		valid = dessert_parse_mac(argv[0], &hwaddr_follow);
 	} else {
 		cli_print(cli, "FOLLOW - no MAC Address given...");
 		return CLI_ERROR;
@@ -80,9 +80,9 @@ static int cli_cmd_follow(struct cli_def *cli, char *command, char *argv[], int 
 	if(argc >= 3) {
 		follow_interval_t.tv_sec = atoi(argv[1]);
 		follow_interval_t.tv_usec = atoi(argv[2]);
-		cli_print(cli, "FOLLOW - set interval: %lldsec + %lldusec", follow_interval_t.tv_sec, follow_interval_t.tv_usec);
+		cli_print(cli, "FOLLOW - set interval: %lldsec + %lldusec", (long long) follow_interval_t.tv_sec, (long long) follow_interval_t.tv_usec);
 	} else {
-		cli_print(cli, "FOLLOW - no interval...taking default: %lldsec + %lldusec", follow_interval_t.tv_sec, follow_interval_t.tv_usec);
+		cli_print(cli, "FOLLOW - no interval...taking default: %lldsec + %lldusec", (long long) follow_interval_t.tv_sec, (long long) follow_interval_t.tv_usec);
 	}
 
 	cli_print(cli, "FOLLOW - writing RSSI-info for neighbour [%s] in log file", argv[0]);

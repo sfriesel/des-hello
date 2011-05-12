@@ -61,7 +61,7 @@ static int cli_cmd_follow(struct cli_def *cli, char *command, char *argv[], int 
 	if(*hwaddr_follow == NULL) {
 		hwaddr_follow = calloc(1, sizeof(hwaddr_follow));
 	} else {
-		cli_print(cli, "FOLLOW - already following MAC [%02x:%02x:%02x:%02x:%02x:%02x]", EXPLODE_ARRAY6(hwaddr_follow));
+//		cli_print(cli, "FOLLOW - already following MAC [%02x:%02x:%02x:%02x:%02x:%02x]", EXPLODE_ARRAY6(hwaddr_follow));
 		return CLI_ERROR;
 	}
 

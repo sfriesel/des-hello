@@ -35,7 +35,7 @@ int handle_hello(dessert_msg_t* msg, size_t len, dessert_msg_proc_t *proc, const
 			dessert_meshsend(msg, iface);
 		} else {
 			if (memcmp(iface->hwaddr, msg->l2h.ether_dhost, ETH_ALEN) == 0) {
-//				dessert_info("received hello resp from %2x:%2x:%2x:%2x:%2x:%2x", EXPLODE_ARRAY6(msg->l2h.ether_shost));
+//				dessert_info("received hello resp from %02x:%02x:%02x:%02x:%02x:%02x", EXPLODE_ARRAY6(msg->l2h.ether_shost));
 			}
 		}
 		return DESSERT_MSG_DROP;
@@ -61,7 +61,7 @@ static int cli_cmd_follow(struct cli_def *cli, char *command, char *argv[], int 
 	if(*hwaddr_follow == NULL) {
 		hwaddr_follow = calloc(1, sizeof(hwaddr_follow));
 	} else {
-//		cli_print(cli, "FOLLOW - already following MAC [%02x:%02x:%02x:%02x:%02x:%02x]", EXPLODE_ARRAY6(hwaddr_follow));
+		cli_print(cli, "FOLLOW - already following MAC [%02x:%02x:%02x:%02x:%02x:%02x]", EXPLODE_ARRAY6((*hwaddr_follow)));
 		return CLI_ERROR;
 	}
 

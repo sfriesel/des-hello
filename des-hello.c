@@ -5,7 +5,7 @@
 
 #define HELLO_EXT_TYPE (DESSERT_EXT_USER + 4)
 
-mac_addr hwaddr_follow;
+mac_addr *hwaddr_follow = NULL;
 
 int periodic_send_hello(void *data, struct timeval *scheduled, struct timeval *interval) {
 //	dessert_info("sending hello");
@@ -35,7 +35,7 @@ int handle_hello(dessert_msg_t* msg, size_t len, dessert_msg_proc_t *proc, const
 			dessert_meshsend(msg, iface);
 		} else {
 			if (memcmp(iface->hwaddr, msg->l2h.ether_dhost, ETH_ALEN) == 0) {
-//				dessert_info("received hello resp from %x:%x:%x:%x:%x:%x", EXPLODE_ARRAY6(msg->l2h.ether_shost));
+//				dessert_info("received hello resp from %2x:%2x:%2x:%2x:%2x:%2x", EXPLODE_ARRAY6(msg->l2h.ether_shost));
 			}
 		}
 		return DESSERT_MSG_DROP;
@@ -53,10 +53,17 @@ int toMesh(dessert_msg_t* msg, size_t len, dessert_msg_proc_t *proc, dessert_sys
 
 int periodic_report_follow(void *data, struct timeval *scheduled, struct timeval *interval) {
 
-	return dessert_log_monitored_neighbour(hwaddr_follow);
+	return dessert_log_monitored_neighbour(*hwaddr_follow);
 }
 
 static int cli_cmd_follow(struct cli_def *cli, char *command, char *argv[], int argc) {
+
+	if(*hwaddr_follow == NULL) {
+		hwaddr_follow = calloc(1, sizeof(hwaddr_follow));
+	} else {
+		cli_print(cli, "FOLLOW - already following MAC [%02x:%02x:%02x:%02x:%02x:%02x]", EXPLODE_ARRAY6(hwaddr_follow));
+		return CLI_ERROR;
+	}
 
 	struct timeval follow_interval_t;
 	follow_interval_t.tv_sec = 1;
@@ -64,7 +71,7 @@ static int cli_cmd_follow(struct cli_def *cli, char *command, char *argv[], int 
 	
 	int valid = -1;
 	if(argc >= 1) {
-		valid = dessert_parse_mac(argv[0], &hwaddr_follow);
+		valid = dessert_parse_mac(argv[0], hwaddr_follow);
 	} else {
 		cli_print(cli, "FOLLOW - no MAC Address given...");
 		return CLI_ERROR;
@@ -117,7 +124,7 @@ int main(int argc, char *argv[]) {
 	/* cli initialization */
 	cli_register_command(dessert_cli, dessert_cli_cfg_iface, "sys", dessert_cli_cmd_addsysif, PRIVILEGE_PRIVILEGED, MODE_CONFIG, "initialize sys interface");
 	cli_register_command(dessert_cli, dessert_cli_cfg_iface, "mesh", dessert_cli_cmd_addmeshif, PRIVILEGE_PRIVILEGED, MODE_CONFIG, "initialize mesh interface");
-	
+
 	cli_register_command(dessert_cli, NULL, "follow", cli_cmd_follow, PRIVILEGE_PRIVILEGED, MODE_CONFIG, "configure a neighbour to follow -> output to logfile");
 
 	/* registering callbacks */

@@ -12,7 +12,7 @@ clean:
 	rm -f $(DAEMONNAME) || true
 
 $(DAEMONNAME) : $(SOURCE)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
 
 .SILENT: clean
 

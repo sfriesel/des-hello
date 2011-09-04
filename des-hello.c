@@ -37,7 +37,7 @@ dessert_per_result_t periodic_send_hello(void *data, struct timeval *scheduled, 
 
 	// create new HELLO message with hello_ext.
 	dessert_msg_new(&hello_msg);
-	hello_msg->ttl = 2;
+	hello_msg->ttl = 1;
 
 	dessert_msg_addext(hello_msg, &ext, HELLO_EXT_TYPE, 0);
 
@@ -48,20 +48,20 @@ dessert_per_result_t periodic_send_hello(void *data, struct timeval *scheduled, 
 	return DESSERT_PER_KEEP;
 }
 
+dessert_cb_result handle_ttl(dessert_msg_t* msg, uint32_t len, dessert_msg_proc_t *proc, dessert_meshif_t *iface, dessert_frameid_t id) {
+	if(msg->ttl == 0)
+		return DESSERT_MSG_DROP;
+	else
+		return DESSERT_MSG_KEEP;
+}
+
 dessert_cb_result handle_hello(dessert_msg_t* msg, uint32_t len, dessert_msg_proc_t *proc, dessert_meshif_t *iface, dessert_frameid_t id){
 	dessert_ext_t* hallo_ext;
 
 	if (dessert_msg_getext(msg, &hallo_ext, HELLO_EXT_TYPE, 0) != 0) {
 		msg->ttl--;
-		if (msg->ttl >= 1) { // send hello msg back
-			dessert_debug("received hello req from " MAC, EXPLODE_ARRAY6(msg->l2h.ether_shost));
-			memcpy(msg->l2h.ether_dhost, msg->l2h.ether_shost, ETH_ALEN);
-			dessert_meshsend(msg, iface);
-			dessert_debug("send hello req back to " MAC, EXPLODE_ARRAY6(msg->l2h.ether_shost));
-		} else {
-			if (memcmp(iface->hwaddr, msg->l2h.ether_dhost, ETH_ALEN) == 0) {
-				dessert_debug("received hello resp from " MAC, EXPLODE_ARRAY6(msg->l2h.ether_shost));
-			}
+		if (memcmp(iface->hwaddr, msg->l2h.ether_dhost, ETH_ALEN) == 0) {
+			dessert_debug("received hello resp from " MAC, EXPLODE_ARRAY6(msg->l2h.ether_shost));
 		}
 		return DESSERT_MSG_DROP;
 	}
@@ -153,6 +153,7 @@ int main(int argc, char *argv[]) {
 
 	/* registering callbacks */
 	dessert_meshrxcb_add(dessert_msg_ifaceflags_cb, 20);
+	dessert_meshrxcb_add(handle_ttl, 30);
 	dessert_meshrxcb_add(handle_hello, 40);
 
 	dessert_sysrxcb_add(toMesh, 100);

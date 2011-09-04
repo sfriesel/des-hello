@@ -31,8 +31,7 @@
 
 mac_addr *hwaddr_follow = NULL;
 
-int periodic_send_hello(void *data, struct timeval *scheduled, struct timeval *interval) {
-	dessert_debug("sending hello");
+dessert_per_result_t periodic_send_hello(void *data, struct timeval *scheduled, struct timeval *interval) {
 	dessert_msg_t* hello_msg;
 	dessert_ext_t* ext;
 
@@ -46,10 +45,10 @@ int periodic_send_hello(void *data, struct timeval *scheduled, struct timeval *i
 		fputs("FAIL\n", stderr);
 	}
 	dessert_msg_destroy(hello_msg);
-	return 0;
+	return DESSERT_PER_KEEP;
 }
 
-int handle_hello(dessert_msg_t* msg, size_t len, dessert_msg_proc_t *proc, const dessert_meshif_t *iface, dessert_frameid_t id){
+dessert_cb_result handle_hello(dessert_msg_t* msg, uint32_t len, dessert_msg_proc_t *proc, dessert_meshif_t *iface, dessert_frameid_t id){
 	dessert_ext_t* hallo_ext;
 
 	if (dessert_msg_getext(msg, &hallo_ext, HELLO_EXT_TYPE, 0) != 0) {
@@ -72,13 +71,12 @@ int handle_hello(dessert_msg_t* msg, size_t len, dessert_msg_proc_t *proc, const
 /**
 * Send dessert message via all registered interfaces.
 **/
-int toMesh(dessert_msg_t* msg, size_t len, dessert_msg_proc_t *proc, dessert_sysif_t *tunif, dessert_frameid_t id) {
+dessert_cb_result toMesh(dessert_msg_t* msg, uint32_t len, dessert_msg_proc_t *proc, dessert_sysif_t *tunif, dessert_frameid_t id) {
 	dessert_meshsend(msg, NULL);
 	return DESSERT_MSG_DROP;
 }
 
-int periodic_report_follow(void *data, struct timeval *scheduled, struct timeval *interval) {
-
+dessert_per_result_t periodic_report_follow(void *data, struct timeval *scheduled, struct timeval *interval) {
 	return dessert_log_monitored_neighbour(*hwaddr_follow);
 }
 

@@ -1,5 +1,29 @@
+/******************************************************************************
+ Copyright 2011, The DES-SERT Team, Freie Universitaet Berlin (FUB).
+ All rights reserved.
+
+ These sources were originally developed by Philipp Schmidt
+ at Freie Universitaet Berlin (http://www.fu-berlin.de/),
+ Computer Systems and Telematics / Distributed, Embedded Systems (DES) group
+ (http://cst.mi.fu-berlin.de/, http://www.des-testbed.net/)
+ ------------------------------------------------------------------------------
+ This program is free software: you can redistribute it and/or modify it under
+ the terms of the GNU General Public License as published by the Free Software
+ Foundation, either version 3 of the License, or (at your option) any later
+ version.
+
+ This program is distributed in the hope that it will be useful, but WITHOUT
+ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License along with
+ this program. If not, see http://www.gnu.org/licenses/ .
+ ------------------------------------------------------------------------------
+ For further information and questions please use the web site
+ http://www.des-testbed.net/
+ *******************************************************************************/
+
 #include <dessert.h>
-#include <dessert-extra.h>
 #include <string.h>
 #include <time.h>
 
@@ -8,7 +32,7 @@
 mac_addr *hwaddr_follow = NULL;
 
 int periodic_send_hello(void *data, struct timeval *scheduled, struct timeval *interval) {
-//	dessert_info("sending hello");
+	dessert_debug("sending hello");
 	dessert_msg_t* hello_msg;
 	dessert_ext_t* ext;
 
@@ -31,11 +55,13 @@ int handle_hello(dessert_msg_t* msg, size_t len, dessert_msg_proc_t *proc, const
 	if (dessert_msg_getext(msg, &hallo_ext, HELLO_EXT_TYPE, 0) != 0) {
 		msg->ttl--;
 		if (msg->ttl >= 1) { // send hello msg back
+			dessert_debug("received hello req from " MAC, EXPLODE_ARRAY6(msg->l2h.ether_shost));
 			memcpy(msg->l2h.ether_dhost, msg->l2h.ether_shost, ETH_ALEN);
 			dessert_meshsend(msg, iface);
+			dessert_debug("send hello req back to " MAC, EXPLODE_ARRAY6(msg->l2h.ether_shost));
 		} else {
 			if (memcmp(iface->hwaddr, msg->l2h.ether_dhost, ETH_ALEN) == 0) {
-//				dessert_info("received hello resp from %02x:%02x:%02x:%02x:%02x:%02x", EXPLODE_ARRAY6(msg->l2h.ether_shost));
+				dessert_debug("received hello resp from " MAC, EXPLODE_ARRAY6(msg->l2h.ether_shost));
 			}
 		}
 		return DESSERT_MSG_DROP;
@@ -61,7 +87,7 @@ static int cli_cmd_follow(struct cli_def *cli, char *command, char *argv[], int 
 	if(*hwaddr_follow == NULL) {
 		hwaddr_follow = calloc(1, sizeof(hwaddr_follow));
 	} else {
-		cli_print(cli, "FOLLOW - already following MAC [%02x:%02x:%02x:%02x:%02x:%02x]", EXPLODE_ARRAY6((*hwaddr_follow)));
+		cli_print(cli, "FOLLOW - already following MAC [" MAC "]", EXPLODE_ARRAY6((*hwaddr_follow)));
 		return CLI_ERROR;
 	}
 
@@ -106,7 +132,7 @@ int main(int argc, char *argv[]) {
 	if ((argc == 2) && (strcmp(argv[1], "-nondaemonize") == 0)) {
 		dessert_info("starting HELLO in non daemonize mode");
 		dessert_init("DESX", 0xEE, DESSERT_OPT_NODAEMONIZE);
-		char cfg_file_name[] = "./des-hello.conf";
+		char cfg_file_name[] = "./des-hello.cli";
 		cfg = fopen(cfg_file_name, "r");
 		if (cfg == NULL) {
 			printf("Config file '%s' not found. Exit ...\n", cfg_file_name);
@@ -119,7 +145,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* initalize logging */
-	dessert_logcfg(DESSERT_LOG_STDERR);
+	dessert_logcfg(DESSERT_LOG_STDERR | DESSERT_LOG_FILE);
 	
 	/* cli initialization */
 	cli_register_command(dessert_cli, dessert_cli_cfg_iface, "sys", dessert_cli_cmd_addsysif, PRIVILEGE_PRIVILEGED, MODE_CONFIG, "initialize sys interface");
@@ -138,6 +164,7 @@ int main(int argc, char *argv[]) {
 	hello_interval_t.tv_sec = 1;
 	hello_interval_t.tv_usec = 0;
 	dessert_periodic_add(periodic_send_hello, NULL, NULL, &hello_interval_t);
+	dessert_info("starting periodic send hello - interval set to %d.%ds", hello_interval_t.tv_sec, hello_interval_t.tv_usec);
 
 	/* running cli & daemon */
 	cli_file(dessert_cli, cfg, PRIVILEGE_PRIVILEGED, MODE_CONFIG);
